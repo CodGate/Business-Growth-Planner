@@ -1,45 +1,47 @@
 import streamlit as st
 from openai import OpenAI
-import os
-from dotenv import load_dotenv
 import pandas as pd
 import matplotlib.pyplot as plt
 import json
 
-# -------------------------
+# -----------------------------------
 # PAGE CONFIG
-# -------------------------
+# -----------------------------------
 st.set_page_config(
     page_title="Business Growth Planner",
     page_icon="📊",
     layout="wide"
 )
 
-# -------------------------
-# LOAD ENV
-# -------------------------
-load_dotenv()
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# -----------------------------------
+# LOAD API KEY FROM STREAMLIT SECRETS
+# -----------------------------------
+try:
+    api_key = st.secrets["OPENAI_API_KEY"]
+except:
+    st.error("❌ API key not found. Please add OPENAI_API_KEY in Streamlit Secrets.")
+    st.stop()
 
-# -------------------------
-# SIDEBAR (Company Branding)
-# -------------------------
+client = OpenAI(api_key=api_key)
+
+# -----------------------------------
+# SIDEBAR (Branding)
+# -----------------------------------
 st.sidebar.title("🏢 Zeesolution")
 st.sidebar.markdown("### AI Strategic Advisory System")
 st.sidebar.markdown("---")
 st.sidebar.info("Professional Business Growth Intelligence")
 
-# -------------------------
-# TITLE
-# -------------------------
+# -----------------------------------
+# MAIN TITLE
+# -----------------------------------
 st.title("📈 Business Growth Planner")
-st.markdown("AI-powered strategic advisory platform for businesses and startups.")
-
+st.markdown("AI-powered advisory platform for business growth and startup planning.")
 st.markdown("---")
 
-# -------------------------
+# -----------------------------------
 # MODE SELECTION
-# -------------------------
+# -----------------------------------
 mode = st.radio(
     "Select your category:",
     ["Existing Business", "Start New Business"]
@@ -47,10 +49,11 @@ mode = st.radio(
 
 st.markdown("---")
 
-# -------------------------
-# FUNCTION: GENERATE CHART
-# -------------------------
+# -----------------------------------
+# CHART FUNCTION
+# -----------------------------------
 def generate_chart(chart_data):
+
     revenue_data = chart_data["revenue_projection"]
     profit_data = chart_data["profit_projection"]
 
@@ -68,9 +71,9 @@ def generate_chart(chart_data):
     ax.legend()
     st.pyplot(fig)
 
-# -------------------------
+# -----------------------------------
 # EXISTING BUSINESS MODE
-# -------------------------
+# -----------------------------------
 if mode == "Existing Business":
 
     col1, col2 = st.columns(2)
@@ -121,30 +124,31 @@ if mode == "Existing Business":
         }}
         """
 
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": "You are a professional AI business consultant providing structured strategic advice."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.7
-        )
+        with st.spinner("Analyzing business..."):
+
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": "You are a professional AI business consultant providing structured strategic advice."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.7
+            )
 
         result = response.choices[0].message.content
         st.markdown(result)
 
-        # Extract Chart Data
         if "CHART_DATA:" in result:
             try:
                 json_part = result.split("CHART_DATA:")[-1].strip()
                 chart_data = json.loads(json_part)
                 generate_chart(chart_data)
             except:
-                st.warning("Chart data could not be generated.")
+                st.warning("⚠ Chart data could not be generated.")
 
-# -------------------------
+# -----------------------------------
 # STARTUP MODE
-# -------------------------
+# -----------------------------------
 elif mode == "Start New Business":
 
     col1, col2 = st.columns(2)
@@ -190,14 +194,16 @@ elif mode == "Start New Business":
         }}
         """
 
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": "You are a professional AI startup consultant providing structured strategic advice."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.8
-        )
+        with st.spinner("Analyzing startup plan..."):
+
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": "You are a professional AI startup consultant providing structured strategic advice."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.8
+            )
 
         result = response.choices[0].message.content
         st.markdown(result)
@@ -208,10 +214,10 @@ elif mode == "Start New Business":
                 chart_data = json.loads(json_part)
                 generate_chart(chart_data)
             except:
-                st.warning("Chart data could not be generated.")
+                st.warning("⚠ Chart data could not be generated.")
 
-# -------------------------
+# -----------------------------------
 # FOOTER
-# -------------------------
+# -----------------------------------
 st.markdown("---")
 st.markdown("Prepared by Zeesolution AI Strategic Advisory System")
