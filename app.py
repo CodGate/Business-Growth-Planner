@@ -1,26 +1,55 @@
 import streamlit as st
-import openai
+from openai import OpenAI
 import os
 from dotenv import load_dotenv
 import pandas as pd
 import matplotlib.pyplot as plt
 import json
 
-st.set_page_config(page_title="Zeesolution AI Consultant", page_icon="📊", layout="wide")
+# -------------------------
+# PAGE CONFIG
+# -------------------------
+st.set_page_config(
+    page_title="Business Growth Planner",
+    page_icon="📊",
+    layout="wide"
+)
 
+# -------------------------
+# LOAD ENV
+# -------------------------
 load_dotenv()
-openai.api_key = os.getenv("OPENAI_API_KEY")
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
+# -------------------------
+# SIDEBAR (Company Branding)
+# -------------------------
 st.sidebar.title("🏢 Zeesolution")
 st.sidebar.markdown("### AI Strategic Advisory System")
 st.sidebar.markdown("---")
 st.sidebar.info("Professional Business Growth Intelligence")
 
-st.title("Zeesolution AI Business Consultant")
+# -------------------------
+# TITLE
+# -------------------------
+st.title("📈 Business Growth Planner")
+st.markdown("AI-powered strategic advisory platform for businesses and startups.")
 
-mode = st.radio("Select your category:", ["Existing Business", "Start New Business"])
 st.markdown("---")
 
+# -------------------------
+# MODE SELECTION
+# -------------------------
+mode = st.radio(
+    "Select your category:",
+    ["Existing Business", "Start New Business"]
+)
+
+st.markdown("---")
+
+# -------------------------
+# FUNCTION: GENERATE CHART
+# -------------------------
 def generate_chart(chart_data):
     revenue_data = chart_data["revenue_projection"]
     profit_data = chart_data["profit_projection"]
@@ -31,13 +60,19 @@ def generate_chart(chart_data):
         "Profit": list(profit_data.values())
     })
 
+    st.subheader("📊 Financial Projection")
+
     fig, ax = plt.subplots()
     ax.plot(df["Month"], df["Revenue"], marker="o", label="Revenue")
     ax.plot(df["Month"], df["Profit"], marker="o", label="Profit")
     ax.legend()
     st.pyplot(fig)
 
+# -------------------------
+# EXISTING BUSINESS MODE
+# -------------------------
 if mode == "Existing Business":
+
     col1, col2 = st.columns(2)
 
     with col1:
@@ -52,6 +87,7 @@ if mode == "Existing Business":
         problem = st.text_area("Describe Your Main Problem")
 
     if st.button("Analyze Business"):
+
         profit = revenue - expenses
 
         prompt = f"""
@@ -64,30 +100,53 @@ if mode == "Existing Business":
         Sales Channel: {sales_channel}
         Problem: {problem}
 
-        Provide structured analysis and include JSON block named CHART_DATA.
+        Provide structured professional business analysis.
+
+        At the end include:
+
+        CHART_DATA:
+        {{
+          "revenue_projection": {{
+            "month_1": value,
+            "month_3": value,
+            "month_6": value,
+            "month_12": value
+          }},
+          "profit_projection": {{
+            "month_1": value,
+            "month_3": value,
+            "month_6": value,
+            "month_12": value
+          }}
+        }}
         """
 
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "You are Zeesolution AI Business Consultant."},
+                {"role": "system", "content": "You are a professional AI business consultant providing structured strategic advice."},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.7
         )
 
-        result = response["choices"][0]["message"]["content"]
+        result = response.choices[0].message.content
         st.markdown(result)
 
+        # Extract Chart Data
         if "CHART_DATA:" in result:
             try:
                 json_part = result.split("CHART_DATA:")[-1].strip()
                 chart_data = json.loads(json_part)
                 generate_chart(chart_data)
             except:
-                st.warning("Chart generation failed.")
+                st.warning("Chart data could not be generated.")
 
+# -------------------------
+# STARTUP MODE
+# -------------------------
 elif mode == "Start New Business":
+
     col1, col2 = st.columns(2)
 
     with col1:
@@ -101,6 +160,7 @@ elif mode == "Start New Business":
         concern = st.text_area("Main Concern")
 
     if st.button("Analyze Startup Plan"):
+
         prompt = f"""
         Business Idea: {idea}
         Location: {location}
@@ -109,19 +169,37 @@ elif mode == "Start New Business":
         Target Customer: {target_customer}
         Main Concern: {concern}
 
-        Provide structured startup analysis and include JSON block named CHART_DATA.
+        Provide structured startup feasibility analysis.
+
+        At the end include:
+
+        CHART_DATA:
+        {{
+          "revenue_projection": {{
+            "month_1": value,
+            "month_3": value,
+            "month_6": value,
+            "month_12": value
+          }},
+          "profit_projection": {{
+            "month_1": value,
+            "month_3": value,
+            "month_6": value,
+            "month_12": value
+          }}
+        }}
         """
 
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
-                {"role": "system", "content": "You are Zeesolution AI Startup Consultant."},
+                {"role": "system", "content": "You are a professional AI startup consultant providing structured strategic advice."},
                 {"role": "user", "content": prompt}
             ],
             temperature=0.8
         )
 
-        result = response["choices"][0]["message"]["content"]
+        result = response.choices[0].message.content
         st.markdown(result)
 
         if "CHART_DATA:" in result:
@@ -130,7 +208,10 @@ elif mode == "Start New Business":
                 chart_data = json.loads(json_part)
                 generate_chart(chart_data)
             except:
-                st.warning("Chart generation failed.")
+                st.warning("Chart data could not be generated.")
 
+# -------------------------
+# FOOTER
+# -------------------------
 st.markdown("---")
 st.markdown("Prepared by Zeesolution AI Strategic Advisory System")
